@@ -23,7 +23,12 @@
 
 set -euo pipefail
 
-OUTPUT_FILE="/admin/home/luka.secerovic/third.txt"
+# Output to login node
+# OUTPUT_FILE="/admin/home/luka.secerovic/third.txt"
+
+# Output to the shared data folder (much bigger storage)
+mkdir -p /data/luka.secerovic
+OUTPUT_FILE="/data/luka.secerovic/third.txt"
 
 section() {
     echo
