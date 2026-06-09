@@ -44,3 +44,8 @@ Tasks can be:
 
 
 We should be able to define yaml configs that can specify the evals: which model to use, which task, which representation, which classifier...
+
+
+## Notes
+Let's not reach for abstractions when that's not needed.
+If this is complicated, we can focus on linear probing to start with. Let's analyze this when brainstorming.
