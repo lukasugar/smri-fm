@@ -94,19 +94,21 @@ class TargetSpec:
     kind: Literal["regression", "classification"]
     dim: int
     loss: str
-    primary_metric: str
 ```
 
 Examples:
 
 ```python
-TargetSpec(kind="regression", dim=1, loss="mse", primary_metric="mae")
-TargetSpec(kind="classification", dim=2, loss="cross_entropy", primary_metric="auroc")
+TargetSpec(kind="regression", dim=1, loss="mse")
+TargetSpec(kind="classification", dim=2, loss="cross_entropy")
 ```
 
 The same linear probe trainer can eventually support regression and
 classification. Initially, classification can be rejected explicitly while the
 API remains ready for it.
+
+Best-checkpoint selection is not target metadata. It belongs in run config,
+because different runs may want to select on different task metrics.
 
 ## Registry Structure
 
@@ -223,6 +225,10 @@ optimization:
   lr: 1e-3
   weight_decay: 0.0
 
+evaluation:
+  selection_metric: mae
+  selection_mode: min
+
 device: cuda
 seed: 7338
 ```
@@ -250,6 +256,10 @@ The initial probe trainer should:
 7. Train only the head.
 8. Evaluate validation and test splits with task metrics.
 9. Write the resolved config, logs, metrics, predictions, and head checkpoint.
+
+The validation metric named by `evaluation.selection_metric` decides which head
+checkpoint is best. `evaluation.selection_mode` should be `min` for metrics like
+MAE or RMSE, and `max` for metrics like accuracy or AUROC.
 
 The core batch path is:
 
