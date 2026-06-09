@@ -1,16 +1,39 @@
 from collections.abc import Mapping
 from typing import Any
 
+import torch
+import torch.nn as nn
+from torch import Tensor
+
 from evaluation.backbones import SmriMaeBackbone, load_smri_mae_checkpoint
 from evaluation.core import EvaluationTask, TargetSpec
 from evaluation.heads import LinearHead
 from evaluation.trainers import ProbeTrainer
 
 
+class FakeBackbone(nn.Module):
+    def __init__(self, embed_dim: int = 4):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.proj = nn.Linear(8, embed_dim)
+
+    def forward(self, images: Tensor) -> dict[str, Tensor]:
+        batch = images.shape[0]
+        flat = images.reshape(batch, -1).float()
+        base = self.proj(flat)
+        return {
+            "cls": base[:, None, :],
+            "reg": torch.stack([base, base + 1.0], dim=1),
+            "patch": torch.stack([base, base + 1.0, base + 2.0], dim=1),
+        }
+
+
 def build_backbone(cfg: Mapping[str, Any]):
     name = cfg.get("name")
+    if name == "fake":
+        return FakeBackbone(embed_dim=int(cfg.get("embed_dim", 4)))
     if name != "smri_mae":
-        raise ValueError("unknown backbone {!r}. available backbones: smri_mae".format(name))
+        raise ValueError("unknown backbone {!r}. available backbones: fake, smri_mae".format(name))
     kwargs = {
         "img_size": cfg["img_size"],
         "patch_size": cfg["patch_size"],
