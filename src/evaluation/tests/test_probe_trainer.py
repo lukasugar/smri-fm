@@ -5,7 +5,8 @@ import torch
 
 from evaluation.heads import LinearHead
 from evaluation.trainers import ProbeTrainer
-from tests.evaluation.fakes import FakeBackbone, FakeRegressionTask
+
+from .fakes import FakeBackbone, FakeRegressionTask
 
 
 def make_cfg(tmp_path):

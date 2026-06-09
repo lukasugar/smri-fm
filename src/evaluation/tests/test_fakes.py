@@ -1,6 +1,6 @@
 import torch
 
-from tests.evaluation.fakes import FakeBackbone, FakeRegressionTask
+from .fakes import FakeBackbone, FakeRegressionTask
 
 
 def test_fake_task_prepare_tracks_overwrite():

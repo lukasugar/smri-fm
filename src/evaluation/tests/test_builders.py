@@ -4,7 +4,8 @@ from evaluation.builders import build_backbone, build_head, build_trainer
 from evaluation.core import TargetSpec
 from evaluation.heads import LinearHead
 from evaluation.trainers import ProbeTrainer
-from tests.evaluation.fakes import FakeBackbone, FakeRegressionTask
+
+from .fakes import FakeBackbone, FakeRegressionTask
 
 
 def test_build_head_linear():
