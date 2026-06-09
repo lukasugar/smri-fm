@@ -1,5 +1,5 @@
 name: eval_probe
-output_dir: runs/evaluation
+output_dir: data/runs/evaluation
 
 task:
   name: null

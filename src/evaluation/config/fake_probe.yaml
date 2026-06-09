@@ -1,5 +1,5 @@
 name: fake_probe
-output_dir: runs/evaluation
+output_dir: data/runs/evaluation
 task:
   name: fake_regression
   overwrite_data: false
@@ -13,10 +13,10 @@ head:
   name: linear
   pooling: first
 optimization:
-  epochs: 1
+  epochs: 4
   batch_size: 2
   lr: 1e-2
-  weight_decay: 0.0
+  weight_decay: 0.1
   num_workers: 0
 evaluation:
   selection_metric: mae
