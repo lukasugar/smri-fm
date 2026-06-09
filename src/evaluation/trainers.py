@@ -1,6 +1,7 @@
 import csv
 import json
 import random
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -168,3 +169,40 @@ class ProbeTrainer:
                         "target": float(target.reshape(-1)[0]),
                     }
                 )
+
+
+def _build_probe_trainer(
+    mode_cfg: Mapping[str, Any],
+    *,
+    cfg: Mapping[str, Any],
+    backbone,
+    head,
+    task: EvaluationTask,
+) -> Any:
+    return ProbeTrainer(cfg=dict(cfg), backbone=backbone, head=head, task=task)
+
+
+_TRAINER_BUILDERS: dict[str, Callable[..., Any]] = {
+    "probe": _build_probe_trainer,
+}
+
+
+def list_trainers() -> list[str]:
+    return sorted(_TRAINER_BUILDERS)
+
+
+def build_trainer(
+    mode_cfg: Mapping[str, Any],
+    *,
+    cfg: Mapping[str, Any],
+    backbone,
+    head,
+    task: EvaluationTask,
+):
+    name = mode_cfg.get("name")
+    try:
+        builder = _TRAINER_BUILDERS[name]
+    except KeyError:
+        available = ", ".join(list_trainers())
+        raise ValueError(f"unknown trainer mode {name!r}. available modes: {available}") from None
+    return builder(mode_cfg, cfg=cfg, backbone=backbone, head=head, task=task)

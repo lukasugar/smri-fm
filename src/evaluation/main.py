@@ -3,8 +3,10 @@ from pathlib import Path
 
 from omegaconf import DictConfig, OmegaConf
 
-from evaluation.builders import build_backbone, build_head, build_trainer
+from evaluation.backbones import build_backbone
+from evaluation.heads import build_head
 from evaluation.tasks import build_task
+from evaluation.trainers import build_trainer
 
 
 def load_config(path: str | Path, overrides: list[str] | None = None) -> DictConfig:

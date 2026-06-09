@@ -1,5 +1,10 @@
+from collections.abc import Callable, Mapping
+from typing import Any
+
 import torch.nn as nn
 from torch import Tensor
+
+from evaluation.core import TargetSpec
 
 
 class LinearHead(nn.Module):
@@ -22,3 +27,28 @@ class LinearHead(nn.Module):
         else:
             raise AssertionError(f"unreachable pooling: {self.pooling}")
         return self.linear(features)
+
+
+def _build_linear_head(
+    cfg: Mapping[str, Any], *, target_spec: TargetSpec, input_dim: int
+) -> nn.Module:
+    return LinearHead(input_dim=input_dim, output_dim=target_spec.dim, pooling=cfg["pooling"])
+
+
+_HEAD_BUILDERS: dict[str, Callable[..., nn.Module]] = {
+    "linear": _build_linear_head,
+}
+
+
+def list_heads() -> list[str]:
+    return sorted(_HEAD_BUILDERS)
+
+
+def build_head(cfg: Mapping[str, Any], *, target_spec: TargetSpec, input_dim: int):
+    name = cfg.get("name")
+    try:
+        builder = _HEAD_BUILDERS[name]
+    except KeyError:
+        available = ", ".join(list_heads())
+        raise ValueError(f"unknown head {name!r}. available heads: {available}") from None
+    return builder(cfg, target_spec=target_spec, input_dim=input_dim)
