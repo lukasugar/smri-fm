@@ -1,0 +1,39 @@
+name: eval_probe
+output_dir: runs/evaluation
+
+task:
+  name: null
+  overwrite_data: false
+
+model:
+  name: smri_mae
+  checkpoint_path: null
+  img_size: [208, 240, 208]
+  patch_size: 8
+  in_chans: 1
+  model_kwargs:
+    class_token: true
+    reg_tokens: 0
+
+mode:
+  name: probe
+
+representation: cls
+
+head:
+  name: linear
+  pooling: first
+
+optimization:
+  epochs: 50
+  batch_size: 8
+  lr: 1e-3
+  weight_decay: 0.0
+  num_workers: 0
+
+evaluation:
+  selection_metric: mae
+  selection_mode: min
+
+device: cuda
+seed: 7338
