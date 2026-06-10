@@ -8,6 +8,15 @@ task:
 model:
   name: smri_mae
   checkpoint_path: null
+
+  # Optional mask handling for smri_mae.
+  # use_input_mask: true expects each evaluation batch to include "mask".
+  use_input_mask: false
+
+  # Optional runtime mask generation. Supported values: null, mean.
+  # mean computes mask = x > x.mean() per volume.
+  calculate_mask: null
+
   img_size: [208, 240, 208]
   patch_size: 8
   in_chans: 1

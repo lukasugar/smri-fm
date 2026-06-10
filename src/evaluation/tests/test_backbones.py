@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from evaluation.backbones import SmriMaeBackbone, load_smri_mae_checkpoint
+from evaluation.backbones import SmriMaeBackbone, _build_smri_mae_backbone, load_smri_mae_checkpoint
 
 
 def tiny_model_kwargs():
@@ -85,3 +85,25 @@ def test_smri_mae_backbone_rejects_unknown_calculated_mask():
 def test_smri_mae_backbone_rejects_conflicting_mask_sources():
     with pytest.raises(ValueError, match="use_input_mask"):
         SmriMaeBackbone(**tiny_model_kwargs(), use_input_mask=True, calculate_mask="mean")
+
+
+def test_build_smri_mae_backbone_passes_mask_options():
+    cfg = {
+        "img_size": [8, 8, 8],
+        "patch_size": 4,
+        "in_chans": 1,
+        "use_input_mask": True,
+        "calculate_mask": None,
+        "model_kwargs": {
+            "depth": 1,
+            "embed_dim": 8,
+            "num_heads": 2,
+            "class_token": True,
+            "reg_tokens": 0,
+        },
+    }
+
+    backbone = _build_smri_mae_backbone(cfg)
+
+    assert backbone.use_input_mask is True
+    assert backbone.calculate_mask is None

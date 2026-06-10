@@ -79,6 +79,8 @@ def _build_smri_mae_backbone(cfg: Mapping[str, Any]) -> nn.Module:
         "img_size": cfg["img_size"],
         "patch_size": cfg["patch_size"],
         "in_chans": cfg.get("in_chans", 1),
+        "use_input_mask": bool(cfg.get("use_input_mask", False)),
+        "calculate_mask": cfg.get("calculate_mask"),
         **dict(cfg.get("model_kwargs") or {}),
     }
     backbone = SmriMaeBackbone(**kwargs)
