@@ -27,13 +27,38 @@ class FakeBackbone(nn.Module):
 
 
 class SmriMaeBackbone(nn.Module):
-    def __init__(self, **kwargs: Any):
+    def __init__(
+        self,
+        *,
+        use_input_mask: bool = False,
+        calculate_mask: str | None = None,
+        **kwargs: Any,
+    ):
         super().__init__()
+        if calculate_mask not in {None, "mean"}:
+            raise ValueError(
+                f"calculate_mask must be one of None or 'mean', got {calculate_mask!r}"
+            )
+        if use_input_mask and calculate_mask is not None:
+            raise ValueError("use_input_mask and calculate_mask cannot both be enabled")
+        self.use_input_mask = bool(use_input_mask)
+        self.calculate_mask = calculate_mask
         self.model = MaskedViT(**kwargs)
         self.embed_dim = self.model.patch_embed.out_features
 
-    def forward(self, images: Tensor) -> dict[str, Tensor | None]:
-        cls, reg, patch = self.model.forward_embedding(images)
+    def _resolve_mask(self, images: Tensor, mask: Tensor | None) -> Tensor | None:
+        if self.use_input_mask:
+            if mask is None:
+                raise ValueError("use_input_mask=True requires a mask input")
+            return mask
+        if self.calculate_mask == "mean":
+            dims = tuple(range(1, images.ndim))
+            return images > images.mean(dim=dims, keepdim=True)
+        return None
+
+    def forward(self, images: Tensor, mask: Tensor | None = None) -> dict[str, Tensor | None]:
+        mask = self._resolve_mask(images, mask)
+        cls, reg, patch = self.model.forward_embedding(images, mask=mask)
         return {"cls": cls, "reg": reg, "patch": patch}
 
 

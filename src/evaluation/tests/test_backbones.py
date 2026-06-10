@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 import torch
 
 from evaluation.backbones import SmriMaeBackbone, load_smri_mae_checkpoint
@@ -45,3 +46,42 @@ def test_load_smri_mae_checkpoint_accepts_pretrain_model_key(tmp_path):
     torch.save({"model": backbone.model.state_dict()}, checkpoint_path)
 
     load_smri_mae_checkpoint(backbone.model, checkpoint_path)
+
+
+def test_smri_mae_backbone_can_use_input_mask():
+    backbone = SmriMaeBackbone(**tiny_model_kwargs(), use_input_mask=True)
+    images = torch.ones(1, 1, 8, 8, 8)
+    mask = torch.zeros_like(images, dtype=torch.bool)
+    mask[:, :, 0, 0, 0] = True
+    mask[:, :, 4:8, 4:8, 4:8] = True
+
+    reps = backbone(images, mask=mask)
+
+    assert reps["patch"].shape == (1, 2, 8)
+
+
+def test_smri_mae_backbone_requires_input_mask_when_enabled():
+    backbone = SmriMaeBackbone(**tiny_model_kwargs(), use_input_mask=True)
+
+    with pytest.raises(ValueError, match="use_input_mask"):
+        backbone(torch.ones(1, 1, 8, 8, 8))
+
+
+def test_smri_mae_backbone_can_calculate_mean_mask():
+    backbone = SmriMaeBackbone(**tiny_model_kwargs(), calculate_mask="mean")
+    images = torch.zeros(1, 1, 8, 8, 8)
+    images[:, :, 4:8, 4:8, 4:8] = 10.0
+
+    reps = backbone(images)
+
+    assert reps["patch"].shape == (1, 1, 8)
+
+
+def test_smri_mae_backbone_rejects_unknown_calculated_mask():
+    with pytest.raises(ValueError, match="calculate_mask"):
+        SmriMaeBackbone(**tiny_model_kwargs(), calculate_mask="median")
+
+
+def test_smri_mae_backbone_rejects_conflicting_mask_sources():
+    with pytest.raises(ValueError, match="use_input_mask"):
+        SmriMaeBackbone(**tiny_model_kwargs(), use_input_mask=True, calculate_mask="mean")
