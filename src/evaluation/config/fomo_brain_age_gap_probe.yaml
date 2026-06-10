@@ -12,25 +12,24 @@ task:
 
 model:
   name: smri_mae
-  checkpoint_path: null
+  checkpoint_path: /data/mihir-stuff/smri-pretrained/pretrain_full_90_10_h100/checkpoint-last.pth
   use_input_mask: false
-  calculate_mask: null
-  img_size: [176, 256, 256]
+  # calculate_mask: null
+  calculate_mask: mean
+  # img_size: [176, 256, 256]
   patch_size: 8
-  in_chans: 1
+  # Kwargs used for the checkpoint
   model_kwargs:
     class_token: true
     reg_tokens: 0
-  model_kwargs:
-    decoding: attn
-    target_norm: none
-    no_decode_pos: false
-    mask_drop_scale: false
-    class_token: true
-    reg_tokens: 0
-    no_embed_class: false
-    decoder_depth: 4
     drop_path_rate: 0.0
+    img_size: [176, 256, 256]
+    # patch_size: 8
+    depth: 24
+    embed_dim: 1024
+    num_heads: 16
+    in_chans: 1
+
 
 mode:
   name: probe
