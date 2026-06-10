@@ -16,7 +16,7 @@ model:
   use_input_mask: false
   # calculate_mask: null
   calculate_mask: mean
-  img_size: [176, 256, 256]
+  img_size: [208, 240, 208]
   patch_size: 8
   # Kwargs used for the checkpoint
   model_kwargs:
