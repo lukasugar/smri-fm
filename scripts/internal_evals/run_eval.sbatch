@@ -13,8 +13,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-mkdir -p slurms
-
 # shellcheck source=scripts/internal_evals/load_env.sh
 source "$REPO_ROOT/scripts/internal_evals/load_env.sh"
 
