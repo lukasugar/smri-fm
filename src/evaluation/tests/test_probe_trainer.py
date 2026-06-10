@@ -77,6 +77,21 @@ def test_probe_trainer_runs_and_writes_outputs(tmp_path):
     assert "train_loss" in metrics["history"][0]
 
 
+def test_probe_trainer_prints_epoch_losses_and_validation_metrics(tmp_path, capsys):
+    task = FakeRegressionTask()
+    backbone = FakeBackbone(embed_dim=4)
+    head = LinearHead(input_dim=4, output_dim=1, pooling="first")
+    trainer = ProbeTrainer(cfg=make_cfg(tmp_path), backbone=backbone, head=head, task=task)
+
+    trainer.run()
+
+    output = capsys.readouterr().out
+    assert "epoch=0" in output
+    assert "train_loss=" in output
+    assert "val_loss=" in output
+    assert "val/mae=" in output
+
+
 def test_probe_trainer_skips_wandb_when_disabled(tmp_path, monkeypatch):
     def fail_if_wandb_imported(name):
         if name == "wandb":
@@ -120,6 +135,7 @@ def test_probe_trainer_logs_to_wandb_by_default(tmp_path, monkeypatch):
     assert init_kwargs["config"] == cfg
     assert init_kwargs["project"] == "smri-fm-test"
     assert any("train/loss" in logged for logged in logs)
+    assert any("val/loss" in logged for logged in logs)
     assert any("val/mae" in logged for logged in logs)
     assert any("final/test/mae" in logged for logged in logs)
     assert any(logged.get("paths/head_best_checkpoint") for logged in logs)

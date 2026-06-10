@@ -33,7 +33,6 @@ class _WandbLogger:
             return cls()
         try:
             wandb = importlib.import_module("wandb")
-            # init_kwargs = {"config": cfg, "name": cfg.get("name") }
             init_kwargs = {"config": cfg}
             wandb_cfg = cfg.get("wandb", {}) or {}
             project = wandb_cfg.get("project")
@@ -127,29 +126,37 @@ class ProbeTrainer:
 
         for epoch in range(int(opt_cfg["epochs"])):
             train_loss = self._train_one_epoch(loaders["train"], optimizer, loss_fn, device)
-            val_metrics, _, _ = self._evaluate(loaders["val"], device)
+            val_metrics, val_loss, _, _ = self._evaluate(loaders["val"], loss_fn, device)
             score = val_metrics[selection["selection_metric"]]
             if is_better(float(score), best_score, selection["selection_mode"]):
                 best_score = float(score)
                 best_epoch = epoch
                 torch.save(self.head.state_dict(), run_dir / "head-best.pt")
-            history.append({"epoch": epoch, "train_loss": train_loss, "val": val_metrics})
+            history.append(
+                {"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss, "val": val_metrics}
+            )
+            print(self._format_epoch_log(epoch, train_loss, val_loss, val_metrics), flush=True)
             wandb_logger.log(
                 {
                     "epoch": epoch,
                     "train/loss": train_loss,
+                    "val/loss": val_loss,
                     **{f"val/{name}": value for name, value in val_metrics.items()},
                 }
             )
 
         self.head.load_state_dict(torch.load(run_dir / "head-best.pt", map_location=device))
-        val_metrics, _, _ = self._evaluate(loaders["val"], device)
-        test_metrics, test_preds, test_targets = self._evaluate(loaders["test"], device)
+        val_metrics, val_loss, _, _ = self._evaluate(loaders["val"], loss_fn, device)
+        test_metrics, test_loss, test_preds, test_targets = self._evaluate(
+            loaders["test"], loss_fn, device
+        )
 
         metrics = {
             "best_epoch": best_epoch,
             "best_score": best_score,
             "history": history,
+            "val_loss": val_loss,
+            "test_loss": test_loss,
             "val": val_metrics,
             "test": test_metrics,
         }
@@ -160,6 +167,8 @@ class ProbeTrainer:
             "best_score": best_score,
             "paths/run_dir": str(run_dir),
             "paths/head_best_checkpoint": str(run_dir / "head-best.pt"),
+            "final/val/loss": val_loss,
+            "final/test/loss": test_loss,
             **{f"final/val/{name}": value for name, value in val_metrics.items()},
             **{f"final/test/{name}": value for name, value in test_metrics.items()},
         }
@@ -204,20 +213,47 @@ class ProbeTrainer:
         return self.backbone(images)
 
     @torch.no_grad()
-    def _evaluate(self, loader, device: torch.device) -> tuple[dict[str, float], Tensor, Tensor]:
+    def _evaluate(
+        self,
+        loader,
+        loss_fn,
+        device: torch.device,
+    ) -> tuple[dict[str, float], float, Tensor, Tensor]:
         self.head.eval()
         predictions = []
         targets = []
+        total_loss = 0.0
+        total_examples = 0
         for batch in loader:
             validate_batch(batch)
             target = batch["target"].to(device).float()
             tokens = self._select_tokens(self._forward_backbone(batch, device))
             prediction = self.head(tokens).reshape(target.shape)
+            loss = loss_fn(prediction, target)
+            batch_size = target.shape[0]
+            total_loss += float(loss.item()) * batch_size
+            total_examples += batch_size
             predictions.append(prediction.cpu())
             targets.append(target.cpu())
         predictions_tensor = torch.cat(predictions)
         targets_tensor = torch.cat(targets)
-        return self.task.metrics(predictions_tensor, targets_tensor), predictions_tensor, targets_tensor
+        loss = total_loss / total_examples if total_examples else float("nan")
+        return self.task.metrics(predictions_tensor, targets_tensor), loss, predictions_tensor, targets_tensor
+
+    def _format_epoch_log(
+        self,
+        epoch: int,
+        train_loss: float,
+        val_loss: float,
+        val_metrics: dict[str, float],
+    ) -> str:
+        values = [
+            f"epoch={epoch}",
+            f"train_loss={train_loss:.6g}",
+            f"val_loss={val_loss:.6g}",
+            *(f"val/{name}={value:.6g}" for name, value in sorted(val_metrics.items())),
+        ]
+        return " ".join(values)
 
     def _select_tokens(self, reps: dict[str, Tensor]) -> Tensor:
         representation = self.cfg["representation"]
