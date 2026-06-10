@@ -30,6 +30,11 @@ model:
     num_heads: 16
     in_chans: 1
 
+transforms:
+  name: pad_center_crop
+  key: image
+  size: [208, 240, 208]
+  pad_value: 0.0
 
 mode:
   name: probe
