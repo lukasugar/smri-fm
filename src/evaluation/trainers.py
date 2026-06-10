@@ -16,7 +16,7 @@ from evaluation.core import EvaluationTask, validate_batch
 from evaluation.metrics import is_better
 from evaluation.transforms import apply_transforms
 
-
+# Utils
 def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -51,7 +51,7 @@ class _WandbLogger:
         except Exception:
             self._wandb = None
 
-
+# Implementations of custom trainers
 class ProbeTrainer:
     def __init__(
         self,
