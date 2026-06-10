@@ -33,7 +33,8 @@ class _WandbLogger:
             return cls()
         try:
             wandb = importlib.import_module("wandb")
-            init_kwargs = {"config": cfg, "name": cfg.get("name")}
+            # init_kwargs = {"config": cfg, "name": cfg.get("name") }
+            init_kwargs = {"config": cfg}
             wandb_cfg = cfg.get("wandb", {}) or {}
             project = wandb_cfg.get("project")
             if project:
