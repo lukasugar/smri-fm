@@ -96,7 +96,7 @@ available representations. These representations are derived from MAE model and 
 `evaluation.selection_metric` must be a metric returned by the task. For the
 current regression task, available metrics are `mae`, `rmse`, `bias`, and `r2`.
 `selection_mode` is `min` for lower-is-better metrics or `max` for
-higher-is-better metrics.
+higher-is-better metrics. It's used for selecting the "best" checkpoint.
 
 ## Supported Modes
 
@@ -113,7 +113,7 @@ selects the best head by validation metric, reloads that head, then evaluates
 on validation and test splits.
 
 Classification targets are represented by `TargetSpec(kind="classification",
-...)`, but `ProbeTrainer` currently raises `NotImplementedError` for them.
+...)`, but `ProbeTrainer` currently raises `NotImplementedError` for them. It will be properly implemented when a classification tasks gets implemented.
 
 ### Heads
 
