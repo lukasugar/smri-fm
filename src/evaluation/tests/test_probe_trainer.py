@@ -24,6 +24,18 @@ class MaskRecordingBackbone(torch.nn.Module):
         return {"cls": torch.ones(batch, 1, 1), "reg": None, "patch": None}
 
 
+class ShapeRecordingBackbone(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embed_dim = 1
+        self.seen_shapes = []
+
+    def forward(self, images):
+        self.seen_shapes.append(tuple(images.shape))
+        batch = images.shape[0]
+        return {"cls": torch.ones(batch, 1, 1), "reg": None, "patch": None}
+
+
 def make_cfg(tmp_path):
     return {
         "name": "fake_probe",
@@ -172,3 +184,17 @@ def test_probe_trainer_forwards_optional_batch_mask():
 
     assert backbone.seen_mask is mask
     assert reps["cls"].shape == (2, 1, 1)
+
+
+def test_probe_trainer_applies_configured_transforms_before_backbone(tmp_path):
+    task = FakeRegressionTask()
+    backbone = ShapeRecordingBackbone()
+    head = LinearHead(input_dim=1, output_dim=1, pooling="first")
+    cfg = make_cfg(tmp_path)
+    cfg["transforms"] = {"name": "pad_center_crop", "size": [4, 4, 4]}
+    trainer = ProbeTrainer(cfg=cfg, backbone=backbone, head=head, task=task)
+
+    trainer.run()
+
+    assert backbone.seen_shapes
+    assert all(shape[-3:] == (4, 4, 4) for shape in backbone.seen_shapes)

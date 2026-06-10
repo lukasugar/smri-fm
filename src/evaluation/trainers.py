@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 
 from evaluation.core import EvaluationTask, validate_batch
 from evaluation.metrics import is_better
+from evaluation.transforms import apply_transforms
 
 
 def set_seed(seed: int) -> None:
@@ -79,6 +80,7 @@ class ProbeTrainer:
         task_cfg = self.cfg.get("task", {})
         self.task.prepare(overwrite_data=bool(task_cfg.get("overwrite_data", False)))
         bundle = self.task.datasets()
+        bundle = apply_transforms(bundle, self.cfg.get("transforms"))
         collate_fn = self.task.collate_fn()
         opt_cfg = self.cfg["optimization"]
         loaders = {

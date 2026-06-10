@@ -68,6 +68,8 @@ task:
 model:
   name: smri_mae
 
+transforms: null
+
 mode:
   name: probe
 
@@ -189,6 +191,23 @@ backbone when present. Other optional keys such as `id`, `meta`, or
 The task must return a `DatasetBundle` with `train`, `val`, and `test`
 datasets. Its `target_spec()` controls head output dimension and tells the
 trainer whether the task is regression or classification.
+
+## Transforms
+
+Top-level `transforms` is optional. When omitted or set to `null`, task samples
+are passed through unchanged. The first supported transform is:
+
+```yaml
+transforms:
+  name: pad_center_crop
+  key: image
+  size: [208, 240, 208]
+  pad_value: 0.0
+```
+
+Transforms receive the full sample dict and return the full sample dict. By
+default `pad_center_crop` only modifies `sample["image"]`; all other keys such
+as `target`, `id`, and `meta` are preserved.
 
 ## Add a Task
 

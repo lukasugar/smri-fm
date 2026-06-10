@@ -6,6 +6,18 @@ task:
   name: null
   overwrite_data: false
 
+# Optional sample-level transforms applied after task datasets are built and
+# before batches are passed to the model. Omit or set to null to pass samples
+# through unchanged.
+transforms: null
+
+# Example:
+# transforms:
+#   name: pad_center_crop
+#   key: image
+#   size: [208, 240, 208]
+#   pad_value: 0.0
+
 model:
   name: smri_mae
   checkpoint_path: null
