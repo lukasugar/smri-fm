@@ -47,16 +47,30 @@ class SmriMaeBackbone(nn.Module):
         self.embed_dim = self.model.patch_embed.out_features
 
     def _resolve_mask(self, images: Tensor, mask: Tensor | None) -> Tensor | None:
+        """Return the mask to pass into the MAE embedding forward pass.
+
+        The mask can either be supplied by the caller, derived from the image
+        intensities, or omitted entirely depending on the backbone configuration.
+        """
+        # Use the caller-provided mask when the evaluation config requires it.
         if self.use_input_mask:
             if mask is None:
                 raise ValueError("use_input_mask=True requires a mask input")
             return mask
+        # Calculate a simple intensity mask only when mask inference is enabled.
+        # This is suboptimal but fine for now.
         if self.calculate_mask == "mean":
             dims = tuple(range(1, images.ndim))
             return images > images.mean(dim=dims, keepdim=True)
         return None
 
     def forward(self, images: Tensor, mask: Tensor | None = None) -> dict[str, Tensor | None]:
+        """Encode images and return MAE class, register, and patch embeddings.
+
+        The optional input mask is resolved according to the backbone settings
+        before delegating to the underlying ``MaskedViT`` embedding path.
+        """
+        # Check if a mask is necessary before extracting MAE embeddings.
         mask = self._resolve_mask(images, mask)
         cls, reg, patch = self.model.forward_embedding(images, mask=mask)
         return {"cls": cls, "reg": reg, "patch": patch}
