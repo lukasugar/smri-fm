@@ -1,11 +1,9 @@
 import inspect
 
 from evaluation.core import EvaluationTask
-from evaluation.tasks.fake_regression import FakeRegressionTask
 from evaluation.tasks.fomo_brain_age_gap import FomoBrainAgeGapTask
 
 _TASK_REGISTRY: dict[str, type[EvaluationTask]] = {
-    "fake_regression": FakeRegressionTask,
     "fomo_brain_age_gap": FomoBrainAgeGapTask,
 }
 

@@ -9,23 +9,6 @@ from torch import Tensor
 from smri_mae.model_mae import MaskedViT
 
 
-class FakeBackbone(nn.Module):
-    def __init__(self, embed_dim: int = 4):
-        super().__init__()
-        self.embed_dim = embed_dim
-        self.proj = nn.Linear(8, embed_dim)
-
-    def forward(self, images: Tensor) -> dict[str, Tensor]:
-        batch = images.shape[0]
-        flat = images.reshape(batch, -1).float()
-        base = self.proj(flat)
-        return {
-            "cls": base[:, None, :],
-            "reg": torch.stack([base, base + 1.0], dim=1),
-            "patch": torch.stack([base, base + 1.0, base + 2.0], dim=1),
-        }
-
-
 class SmriMaeBackbone(nn.Module):
     def __init__(
         self,
@@ -93,10 +76,6 @@ def load_smri_mae_checkpoint(model: nn.Module, checkpoint_path: str | Path) -> N
         raise ValueError(f"unexpected checkpoint keys: {unexpected}")
 
 
-def _build_fake_backbone(cfg: Mapping[str, Any]) -> nn.Module:
-    return FakeBackbone(embed_dim=int(cfg.get("embed_dim", 4)))
-
-
 def _build_smri_mae_backbone(cfg: Mapping[str, Any]) -> nn.Module:
     kwargs = {
         "img_size": cfg["img_size"],
@@ -113,7 +92,6 @@ def _build_smri_mae_backbone(cfg: Mapping[str, Any]) -> nn.Module:
 
 
 _BACKBONE_BUILDERS: dict[str, Callable[[Mapping[str, Any]], nn.Module]] = {
-    "fake": _build_fake_backbone,
     "smri_mae": _build_smri_mae_backbone,
 }
 

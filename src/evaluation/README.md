@@ -15,12 +15,6 @@ components, and runs the trainer.
 
 ## Run
 
-Run the smoke probe:
-
-```bash
-uv run python -m evaluation.main --config src/evaluation/config/fake_probe.yaml
-```
-
 Run the default probe config:
 
 ```bash
@@ -33,7 +27,7 @@ Override config values from the command line with OmegaConf dot-list syntax:
 uv run python -m evaluation.main \
   --config src/evaluation/config/default_probe.yaml \
   name=probe_cls \
-  task.name=fake_regression \
+  task.name=fomo_brain_age_gap \
   model.checkpoint_path=/path/to/checkpoint.pt \
   optimization.epochs=10 \
   device=cpu
@@ -62,7 +56,7 @@ name: eval_probe
 output_dir: data/runs/evaluation
 
 task:
-  name: fake_regression
+  name: fomo_brain_age_gap
   overwrite_data: false
 
 model:
@@ -140,11 +134,7 @@ Registered backbones:
 
 | Config value | Class | Purpose |
 | --- | --- | --- |
-| `model.name: fake` | `FakeBackbone` | Tiny deterministic test/smoke backbone |
 | `model.name: smri_mae` | `SmriMaeBackbone` | Adapter around `smri_mae.model_mae.MaskedViT` |
-
-`FakeBackbone` accepts `embed_dim` and returns `cls`, `reg`, and `patch`
-representations. Added just for smoke tests.
 
 `SmriMaeBackbone` builds `MaskedViT` with:
 
@@ -165,7 +155,6 @@ Registered tasks:
 
 | Config value | Class | Status |
 | --- | --- | --- |
-| `task.name: fake_regression` | `FakeRegressionTask` | Smoke-test regression task |
 | `task.name: fomo_brain_age_gap` | `FomoBrainAgeGapTask` | FOMO26 task 3 regression from asparagus-preprocessed tensors |
 
 A task owns data preparation, split construction, collation, target metadata,
