@@ -47,7 +47,7 @@ head:
 
 optimization:
   epochs: 50
-  batch_size: 1
+  batch_size: 4
   lr: 1e-3
   weight_decay: 0.0
   num_workers: 0
