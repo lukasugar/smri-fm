@@ -9,6 +9,7 @@ def test_main_runs_fake_probe(tmp_path):
         f"""
 name: fake_probe
 output_dir: {tmp_path}
+wandb_logging: false
 task:
   name: fake_regression
   overwrite_data: false

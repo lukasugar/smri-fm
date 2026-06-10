@@ -1,5 +1,6 @@
 name: eval_probe
 output_dir: data/runs/evaluation
+wandb_logging: true
 
 task:
   name: null

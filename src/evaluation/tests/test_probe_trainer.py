@@ -1,4 +1,7 @@
+import importlib
 import json
+import sys
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -37,6 +40,7 @@ def make_cfg(tmp_path):
         "evaluation": {"selection_metric": "mae", "selection_mode": "min"},
         "device": "cpu",
         "seed": 7338,
+        "wandb_logging": False,
     }
 
 
@@ -58,6 +62,75 @@ def test_probe_trainer_runs_and_writes_outputs(tmp_path):
     metrics = json.loads((run_dir / "metrics.json").read_text())
     assert "val" in metrics
     assert "test" in metrics
+    assert "train_loss" in metrics["history"][0]
+
+
+def test_probe_trainer_skips_wandb_when_disabled(tmp_path, monkeypatch):
+    def fail_if_wandb_imported(name):
+        if name == "wandb":
+            raise AssertionError("wandb should not be imported")
+        return importlib.import_module(name)
+
+    monkeypatch.setattr(importlib, "import_module", fail_if_wandb_imported)
+    cfg = make_cfg(tmp_path)
+    cfg["wandb_logging"] = False
+    task = FakeRegressionTask()
+    backbone = FakeBackbone(embed_dim=4)
+    head = LinearHead(input_dim=4, output_dim=1, pooling="first")
+    trainer = ProbeTrainer(cfg=cfg, backbone=backbone, head=head, task=task)
+
+    trainer.run()
+
+
+def test_probe_trainer_logs_to_wandb_by_default(tmp_path, monkeypatch):
+    logs = []
+    init_kwargs = {}
+
+    def init(**kwargs):
+        init_kwargs.update(kwargs)
+        return SimpleNamespace()
+
+    fake_wandb = SimpleNamespace(init=init, log=logs.append)
+    monkeypatch.setitem(sys.modules, "wandb", fake_wandb)
+
+    cfg = make_cfg(tmp_path)
+    cfg.pop("wandb_logging")
+    cfg["model"] = {"checkpoint_path": "backbone.pt"}
+    cfg["wandb"] = {"project": "smri-fm-test"}
+    task = FakeRegressionTask()
+    backbone = FakeBackbone(embed_dim=4)
+    head = LinearHead(input_dim=4, output_dim=1, pooling="first")
+    trainer = ProbeTrainer(cfg=cfg, backbone=backbone, head=head, task=task)
+
+    trainer.run()
+
+    assert init_kwargs["name"] == "fake_probe"
+    assert init_kwargs["config"] == cfg
+    assert init_kwargs["project"] == "smri-fm-test"
+    assert any("train/loss" in logged for logged in logs)
+    assert any("val/mae" in logged for logged in logs)
+    assert any("final/test/mae" in logged for logged in logs)
+    assert any(logged.get("paths/head_best_checkpoint") for logged in logs)
+    assert any(logged.get("paths/backbone_checkpoint") == "backbone.pt" for logged in logs)
+
+
+def test_probe_trainer_runs_when_wandb_import_fails(tmp_path, monkeypatch):
+    def fail_wandb_import(name):
+        if name == "wandb":
+            raise ImportError("no wandb")
+        return importlib.import_module(name)
+
+    monkeypatch.setattr(importlib, "import_module", fail_wandb_import)
+    task = FakeRegressionTask()
+    backbone = FakeBackbone(embed_dim=4)
+    head = LinearHead(input_dim=4, output_dim=1, pooling="first")
+    cfg = make_cfg(tmp_path)
+    cfg["wandb_logging"] = True
+    trainer = ProbeTrainer(cfg=cfg, backbone=backbone, head=head, task=task)
+
+    result = trainer.run()
+
+    assert result["best_epoch"] is not None
 
 
 def test_probe_trainer_rejects_missing_representation(tmp_path):

@@ -1,5 +1,6 @@
 name: fake_probe
 output_dir: data/runs/evaluation
+wandb_logging: true
 task:
   name: fake_regression
   overwrite_data: false

@@ -1,4 +1,5 @@
 import csv
+import importlib
 import json
 import random
 from collections.abc import Callable, Mapping
@@ -19,6 +20,35 @@ def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+
+class _WandbLogger:
+    def __init__(self, wandb: Any | None = None):
+        self._wandb = wandb
+
+    @classmethod
+    def start(cls, cfg: dict[str, Any]):
+        if cfg.get("wandb_logging", True) is False:
+            return cls()
+        try:
+            wandb = importlib.import_module("wandb")
+            init_kwargs = {"config": cfg, "name": cfg.get("name")}
+            wandb_cfg = cfg.get("wandb", {}) or {}
+            project = wandb_cfg.get("project")
+            if project:
+                init_kwargs["project"] = project
+            wandb.init(**init_kwargs)
+        except Exception:
+            return cls()
+        return cls(wandb)
+
+    def log(self, values: dict[str, Any]) -> None:
+        if self._wandb is None:
+            return
+        try:
+            self._wandb.log(values)
+        except Exception:
+            self._wandb = None
 
 
 class ProbeTrainer:
@@ -44,6 +74,7 @@ class ProbeTrainer:
         device = torch.device(self.cfg.get("device", "cpu"))
         run_dir = Path(self.cfg["output_dir"]) / self.cfg["name"]
         run_dir.mkdir(parents=True, exist_ok=True)
+        wandb_logger = _WandbLogger.start(self.cfg)
 
         task_cfg = self.cfg.get("task", {})
         self.task.prepare(overwrite_data=bool(task_cfg.get("overwrite_data", False)))
@@ -92,14 +123,21 @@ class ProbeTrainer:
         history = []
 
         for epoch in range(int(opt_cfg["epochs"])):
-            self._train_one_epoch(loaders["train"], optimizer, loss_fn, device)
+            train_loss = self._train_one_epoch(loaders["train"], optimizer, loss_fn, device)
             val_metrics, _, _ = self._evaluate(loaders["val"], device)
             score = val_metrics[selection["selection_metric"]]
             if is_better(float(score), best_score, selection["selection_mode"]):
                 best_score = float(score)
                 best_epoch = epoch
                 torch.save(self.head.state_dict(), run_dir / "head-best.pt")
-            history.append({"epoch": epoch, "val": val_metrics})
+            history.append({"epoch": epoch, "train_loss": train_loss, "val": val_metrics})
+            wandb_logger.log(
+                {
+                    "epoch": epoch,
+                    "train/loss": train_loss,
+                    **{f"val/{name}": value for name, value in val_metrics.items()},
+                }
+            )
 
         self.head.load_state_dict(torch.load(run_dir / "head-best.pt", map_location=device))
         val_metrics, _, _ = self._evaluate(loaders["val"], device)
@@ -114,11 +152,25 @@ class ProbeTrainer:
         }
         (run_dir / "metrics.json").write_text(json.dumps(metrics, indent=2) + "\n")
         self._write_predictions(run_dir / "predictions.csv", test_preds, test_targets)
+        final_log = {
+            "best_epoch": best_epoch,
+            "best_score": best_score,
+            "paths/run_dir": str(run_dir),
+            "paths/head_best_checkpoint": str(run_dir / "head-best.pt"),
+            **{f"final/val/{name}": value for name, value in val_metrics.items()},
+            **{f"final/test/{name}": value for name, value in test_metrics.items()},
+        }
+        backbone_checkpoint = (self.cfg.get("model", {}) or {}).get("checkpoint_path")
+        if backbone_checkpoint:
+            final_log["paths/backbone_checkpoint"] = backbone_checkpoint
+        wandb_logger.log(final_log)
 
         return metrics
 
-    def _train_one_epoch(self, loader, optimizer, loss_fn, device: torch.device) -> None:
+    def _train_one_epoch(self, loader, optimizer, loss_fn, device: torch.device) -> float:
         self.head.train()
+        total_loss = 0.0
+        total_examples = 0
         for batch in loader:
             validate_batch(batch)
             targets = batch["target"].to(device).float()
@@ -129,6 +181,12 @@ class ProbeTrainer:
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
+            batch_size = targets.shape[0]
+            total_loss += float(loss.item()) * batch_size
+            total_examples += batch_size
+        if total_examples == 0:
+            return float("nan")
+        return total_loss / total_examples
 
     def _forward_backbone(
         self,
