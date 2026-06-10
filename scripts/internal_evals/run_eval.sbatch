@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=smri_fm_internal_eval
+#SBATCH --partition=main
+#SBATCH --account=training
+#SBATCH --qos=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=96G
 #SBATCH --output=slurms/%x-%j.out
 #SBATCH --error=slurms/%x-%j.err
 #SBATCH --time=04:00:00
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=32G
-#SBATCH --gres=gpu:1
-#SBATCH --account=training
+
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$REPO_ROOT"
-
-# shellcheck source=scripts/internal_evals/load_env.sh
-source "$REPO_ROOT/scripts/internal_evals/load_env.sh"
+echo "Setting up environment variables."
+source scripts/internal_evals/load_env.sh
+echo "Done setting up environment variables."
 
 echo "Running on host: $(hostname)"
 echo "SLURM_JOB_ID: ${SLURM_JOB_ID:-not_set}"
