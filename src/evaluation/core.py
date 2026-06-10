@@ -21,6 +21,7 @@ class DatasetBundle:
 
 
 class EvaluationTask(Protocol):
+    """Protocol that tasks should support"""
     name: str
 
     def prepare(self, overwrite_data: bool = False) -> None: ...
