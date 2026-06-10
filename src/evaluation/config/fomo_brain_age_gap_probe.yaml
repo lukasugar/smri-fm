@@ -5,7 +5,7 @@ wandb_logging: true
 task:
   name: fomo_brain_age_gap
   overwrite_data: false
-  data_root: data/asparagus/data/REGR002_FOMO26_BrainAge
+  data_root: /data/luka.secerovic/FOMO26/asparagus/data/REGR002_FOMO26_BrainAge
   split: split_80_10_10
   test_split: TEST_80_10_10
   fold: 0
@@ -21,6 +21,16 @@ model:
   model_kwargs:
     class_token: true
     reg_tokens: 0
+  model_kwargs:
+    decoding: attn
+    target_norm: none
+    no_decode_pos: false
+    mask_drop_scale: false
+    class_token: true
+    reg_tokens: 0
+    no_embed_class: false
+    decoder_depth: 4
+    drop_path_rate: 0.0
 
 mode:
   name: probe
