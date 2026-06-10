@@ -14,18 +14,22 @@ The CLI loads the config, applies optional dot-list overrides, builds those
 components, and runs the trainer.
 
 ## Run
-
-Run the default probe config:
-
+To run evaluation, use:
 ```bash
-uv run python -m evaluation.main --config src/evaluation/config/default_probe.yaml
+uv run python -m evaluation.main --config <path_to_your_config>
 ```
 
-Override config values from the command line with OmegaConf dot-list syntax:
+Here's an example:
+
+```bash
+uv run python -m evaluation.main --config src/evaluation/config/fomo_brain_age_gap_probe.yaml
+```
+
+Override config values from the command line with OmegaConf dot-list syntax (although I suggest you create a new config instead of overriding values in cli):
 
 ```bash
 uv run python -m evaluation.main \
-  --config src/evaluation/config/default_probe.yaml \
+  --config src/evaluation/config/fomo_brain_age_gap_probe.yaml \
   name=probe_cls \
   task.name=fomo_brain_age_gap \
   model.checkpoint_path=/path/to/checkpoint.pt \
@@ -197,6 +201,8 @@ transforms:
 Transforms receive the full sample dict and return the full sample dict. By
 default `pad_center_crop` only modifies `sample["image"]`; all other keys such
 as `target`, `id`, and `meta` are preserved.
+
+If you need other transformations, feel free to add them.
 
 ## Add a Task
 
