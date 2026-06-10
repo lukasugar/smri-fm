@@ -23,4 +23,7 @@ echo "Running on host: $(hostname)"
 echo "SLURM_JOB_ID: ${SLURM_JOB_ID:-not_set}"
 echo "Working directory: $(pwd)"
 
+# Just specify your config
+# uv run python -m evaluation.main --config <config_path>
+# Example:
 uv run python -m evaluation.main --config src/evaluation/config/fomo_brain_age_gap_probe.yaml
