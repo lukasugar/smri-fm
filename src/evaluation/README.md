@@ -8,7 +8,7 @@ Internal evaluation and fine-tuning suite.
 uv run python -m evaluation.main --config src/evaluation/config/fake_probe.yaml
 ```
 
-Outputs are written under `runs/evaluation/<name>/`:
+Outputs are written under `data/runs/evaluation/<name>/`:
 
 - `metrics.json`
 - `predictions.csv`
