@@ -7,13 +7,15 @@ def regression_metrics(predictions: Tensor, targets: Tensor) -> dict[str, float]
     targets = targets.detach().float()
     residuals = predictions - targets
     mae = residuals.abs().mean()
-    rmse = torch.sqrt((residuals.square()).mean())
+    mse = residuals.square().mean()
+    rmse = mse.mean()
     bias = residuals.mean()
     total = ((targets - targets.mean()).square()).sum()
     residual = residuals.square().sum()
     r2 = 1.0 - residual / total if total > 0 else torch.tensor(float("nan"))
     return {
         "mae": float(mae.item()),
+        "mse": float(mse.item()),
         "rmse": float(rmse.item()),
         "bias": float(bias.item()),
         "r2": float(r2.item()),
