@@ -8,7 +8,7 @@ def regression_metrics(predictions: Tensor, targets: Tensor) -> dict[str, float]
     residuals = predictions - targets
     mae = residuals.abs().mean()
     mse = residuals.square().mean()
-    rmse = mse.mean()
+    rmse = mse.sqrt()
     bias = residuals.mean()
     total = ((targets - targets.mean()).square()).sum()
     residual = residuals.square().sum()
