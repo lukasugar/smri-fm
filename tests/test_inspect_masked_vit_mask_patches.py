@@ -32,3 +32,14 @@ def test_mean_mask_patch_counts_match_masked_vit_batch_trimming():
     assert masked.visible_patches_before_trim == [2, 1]
     assert masked.tokens_entering_transformer == 1
     assert masked.dropped_visible_patches_by_batch_trim == [1, 0]
+
+
+def test_load_pt_image_uses_first_element(tmp_path):
+    module = load_script_module()
+    image = torch.arange(1 * 2 * 3 * 4, dtype=torch.float32).reshape(1, 2, 3, 4)
+    path = tmp_path / "sample.pt"
+    torch.save((image, torch.tensor([123.0])), path)
+
+    loaded = module.load_pt_image(path)
+
+    assert torch.equal(loaded, image)

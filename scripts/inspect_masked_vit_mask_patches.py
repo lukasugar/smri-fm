@@ -4,6 +4,9 @@
 Default mode avoids running transformer attention and reports the exact number
 of patch tokens that would enter the encoder. Use --run-forward on a GPU node if
 you also want to verify the actual forward_embedding output shapes.
+
+Each input path must be a .pt file. The script loads the file with torch.load
+and uses the first element of the loaded object as the image tensor.
 """
 
 from __future__ import annotations
@@ -15,7 +18,6 @@ import sys
 from pathlib import Path
 from typing import Any, NamedTuple
 
-import nibabel as nib
 import torch
 import torch.nn.functional as F
 
@@ -113,14 +115,22 @@ def calculate_mean_mask(images: torch.Tensor) -> torch.Tensor:
     return images > images.mean(dim=dims, keepdim=True)
 
 
-def load_nifti_image(path: Path) -> torch.Tensor:
-    image = nib.load(str(path))
-    data = torch.as_tensor(image.get_fdata(dtype="float32"))
-    if data.ndim == 4 and data.shape[-1] == 1:
-        data = data[..., 0]
-    if data.ndim != 3:
-        raise ValueError(f"{path} must contain a 3D image, got shape {tuple(data.shape)}")
-    return data.unsqueeze(0)
+def load_pt_image(path: Path) -> torch.Tensor:
+    data = torch.load(path, map_location="cpu", weights_only=False)
+    try:
+        image = data[0]
+    except (KeyError, IndexError, TypeError) as error:
+        raise ValueError(f"{path} must load to an indexable object with image at index 0") from error
+
+    image = torch.as_tensor(image, dtype=torch.float32)
+    if image.ndim == 3:
+        image = image.unsqueeze(0)
+    if image.ndim != 4:
+        raise ValueError(
+            f"{path}[0] must be a 3D [T,H,W] or 4D [C,T,H,W] image tensor, "
+            f"got shape {tuple(image.shape)}"
+        )
+    return image
 
 
 def pad_center_crop(tensor: torch.Tensor, size: tuple[int, int, int]) -> torch.Tensor:
@@ -163,7 +173,7 @@ def make_batch(
     images: list[torch.Tensor] = []
     original_shapes: list[tuple[int, ...]] = []
     for path in paths:
-        image = load_nifti_image(path)
+        image = load_pt_image(path)
         original_shapes.append(tuple(image.shape))
         if tuple(image.shape[-3:]) != img_size:
             if not pad_or_crop:
@@ -239,7 +249,7 @@ def run_forward(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("images", nargs=4, type=Path, help="Four input .nii or .nii.gz images")
+    parser.add_argument("images", nargs=4, type=Path, help="Four input .pt files")
     parser.add_argument("--config", type=Path, help="Optional evaluation YAML config")
     parser.add_argument("--img-size", nargs="+", type=int, help="Model image size, one int or T H W")
     parser.add_argument("--patch-size", nargs="+", type=int, help="Patch size, one int or T H W")
