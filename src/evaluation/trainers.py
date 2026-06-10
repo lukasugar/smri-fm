@@ -121,15 +121,26 @@ class ProbeTrainer:
         self.head.train()
         for batch in loader:
             validate_batch(batch)
-            images = batch["image"].to(device)
             targets = batch["target"].to(device).float()
             with torch.no_grad():
-                tokens = self._select_tokens(self.backbone(images))
+                tokens = self._select_tokens(self._forward_backbone(batch, device))
             predictions = self.head(tokens).reshape(targets.shape)
             loss = loss_fn(predictions, targets)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
+
+    def _forward_backbone(
+        self,
+        batch: dict[str, Tensor],
+        device: torch.device,
+    ) -> dict[str, Tensor | None]:
+        images = batch["image"].to(device)
+        mask = batch.get("mask")
+        if mask is not None:
+            mask = mask.to(device)
+            return self.backbone(images, mask=mask)
+        return self.backbone(images)
 
     @torch.no_grad()
     def _evaluate(self, loader, device: torch.device) -> tuple[dict[str, float], Tensor, Tensor]:
@@ -138,9 +149,8 @@ class ProbeTrainer:
         targets = []
         for batch in loader:
             validate_batch(batch)
-            images = batch["image"].to(device)
             target = batch["target"].to(device).float()
-            tokens = self._select_tokens(self.backbone(images))
+            tokens = self._select_tokens(self._forward_backbone(batch, device))
             prediction = self.head(tokens).reshape(target.shape)
             predictions.append(prediction.cpu())
             targets.append(target.cpu())

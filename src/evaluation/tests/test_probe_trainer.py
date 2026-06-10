@@ -9,6 +9,18 @@ from evaluation.trainers import ProbeTrainer
 from .fakes import FakeBackbone, FakeRegressionTask
 
 
+class MaskRecordingBackbone(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embed_dim = 1
+        self.seen_mask = None
+
+    def forward(self, images, mask=None):
+        self.seen_mask = mask
+        batch = images.shape[0]
+        return {"cls": torch.ones(batch, 1, 1), "reg": None, "patch": None}
+
+
 def make_cfg(tmp_path):
     return {
         "name": "fake_probe",
@@ -74,3 +86,16 @@ def test_probe_trainer_rejects_classification_for_now(tmp_path):
 
     with pytest.raises(NotImplementedError, match="classification"):
         trainer.run()
+
+
+def test_probe_trainer_forwards_optional_batch_mask():
+    backbone = MaskRecordingBackbone()
+    trainer = object.__new__(ProbeTrainer)
+    trainer.backbone = backbone
+    images = torch.zeros(2, 1, 2, 2, 2)
+    mask = torch.ones_like(images, dtype=torch.bool)
+
+    reps = trainer._forward_backbone({"image": images, "mask": mask}, torch.device("cpu"))
+
+    assert backbone.seen_mask is mask
+    assert reps["cls"].shape == (2, 1, 1)
