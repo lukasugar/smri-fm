@@ -278,6 +278,8 @@ class ProbeTrainer:
                 )
 
 
+
+# Factory methods
 def _build_probe_trainer(
     mode_cfg: Mapping[str, Any],
     *,
