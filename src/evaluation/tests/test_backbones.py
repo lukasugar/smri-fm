@@ -48,6 +48,16 @@ def test_load_smri_mae_checkpoint_accepts_pretrain_model_key(tmp_path):
     load_smri_mae_checkpoint(backbone.model, checkpoint_path)
 
 
+def test_load_smri_mae_checkpoint_filters_mae_encoder_keys(tmp_path):
+    backbone = SmriMaeBackbone(**tiny_model_kwargs())
+    encoder_state = {f"encoder.{key}": value for key, value in backbone.model.state_dict().items()}
+    encoder_state["decoder.head.weight"] = torch.zeros(1)
+    checkpoint_path = Path(tmp_path) / "checkpoint.pt"
+    torch.save({"model": encoder_state}, checkpoint_path)
+
+    load_smri_mae_checkpoint(backbone.model, checkpoint_path)
+
+
 def test_smri_mae_backbone_can_use_input_mask():
     backbone = SmriMaeBackbone(**tiny_model_kwargs(), use_input_mask=True)
     images = torch.ones(1, 1, 8, 8, 8)
