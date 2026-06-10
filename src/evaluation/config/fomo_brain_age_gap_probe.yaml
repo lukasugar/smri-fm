@@ -1,0 +1,46 @@
+name: fomo_brain_age_gap_probe
+output_dir: data/runs/evaluation
+wandb_logging: true
+
+task:
+  name: fomo_brain_age_gap
+  overwrite_data: false
+  data_root: data/asparagus/data/REGR002_FOMO26_BrainAge
+  split: split_80_10_10
+  test_split: TEST_80_10_10
+  fold: 0
+
+model:
+  name: smri_mae
+  checkpoint_path: null
+  use_input_mask: false
+  calculate_mask: null
+  img_size: [176, 256, 256]
+  patch_size: 8
+  in_chans: 1
+  model_kwargs:
+    class_token: true
+    reg_tokens: 0
+
+mode:
+  name: probe
+
+representation: cls
+
+head:
+  name: linear
+  pooling: first
+
+optimization:
+  epochs: 50
+  batch_size: 1
+  lr: 1e-3
+  weight_decay: 0.0
+  num_workers: 0
+
+evaluation:
+  selection_metric: mae
+  selection_mode: min
+
+device: cuda
+seed: 7338

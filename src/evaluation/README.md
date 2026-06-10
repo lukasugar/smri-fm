@@ -164,9 +164,16 @@ Registered tasks:
 | Config value | Class | Status |
 | --- | --- | --- |
 | `task.name: fake_regression` | `FakeRegressionTask` | Smoke-test regression task |
+| `task.name: fomo_brain_age_gap` | `FomoBrainAgeGapTask` | FOMO26 task 3 regression from asparagus-preprocessed tensors |
 
 A task owns data preparation, split construction, collation, target metadata,
 and metric computation.
+
+`fomo_brain_age_gap` reads the standard asparagus task directory
+`data/asparagus/data/REGR002_FOMO26_BrainAge` by default. It uses
+`split_80_10_10.json` for train/validation folds and `TEST_80_10_10.json` for
+test samples. The dataset returns stored tensors as-is: no resizing, padding,
+cropping, or intensity normalization is applied inside the task.
 
 ## Batch Contract
 
