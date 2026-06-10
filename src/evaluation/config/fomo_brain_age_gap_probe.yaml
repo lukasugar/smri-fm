@@ -14,17 +14,14 @@ model:
   name: smri_mae
   checkpoint_path: /data/mihir-stuff/smri-pretrained/pretrain_full_90_10_h100/checkpoint-last.pth
   use_input_mask: false
-  # calculate_mask: null
   calculate_mask: mean
   img_size: [208, 240, 208]
   patch_size: 8
-  # Kwargs used for the checkpoint
+  # Kwargs can be anything...
   model_kwargs:
     class_token: true
     reg_tokens: 0
     drop_path_rate: 0.0
-    # img_size: [176, 256, 256]
-    # patch_size: 8
     depth: 24
     embed_dim: 1024
     num_heads: 16
@@ -39,10 +36,13 @@ transforms:
 mode:
   name: probe
 
+# Representation defines what part of encoder output gets
+# passed to the head
 representation: cls
 
 head:
   name: linear
+  # pooling - first and mean supported
   pooling: first
 
 optimization:
