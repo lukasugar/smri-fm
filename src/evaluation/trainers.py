@@ -398,9 +398,12 @@ class ScikitProbeTrainer:
             print(self._format_alpha_log(float(alpha), val_loss, val_metrics), flush=True)
             wandb_logger.log(
                 {
-                    "alpha": float(alpha),
-                    "val/loss": val_loss,
-                    **{f"val/{name}": value for name, value in val_metrics.items()},
+                    "alpha_search/alpha": float(alpha),
+                    "alpha_search/val/loss": val_loss,
+                    **{
+                        f"alpha_search/val/{name}": value
+                        for name, value in val_metrics.items()
+                    },
                 }
             )
 
@@ -413,6 +416,17 @@ class ScikitProbeTrainer:
         test_loss = self._mse_loss(test_predictions, test_targets)
         val_metrics = self.task.metrics(val_predictions, val_targets)
         test_metrics = self.task.metrics(test_predictions, test_targets)
+        print(
+            self._format_best_alpha_log(
+                best_alpha=best_alpha,
+                best_score=best_score,
+                selection_metric=selection["selection_metric"],
+                val_loss=val_loss,
+                test_loss=test_loss,
+                test_metrics=test_metrics,
+            ),
+            flush=True,
+        )
 
         model_path = run_dir / "model.joblib"
         joblib.dump(best_model, model_path)
@@ -531,6 +545,28 @@ class ScikitProbeTrainer:
             f"alpha={alpha:.6g}",
             f"val_loss={val_loss:.6g}",
             *(f"val/{name}={value:.6g}" for name, value in sorted(val_metrics.items())),
+        ]
+        return " ".join(values)
+
+    def _format_best_alpha_log(
+        self,
+        *,
+        best_alpha: float | None,
+        best_score: float | None,
+        selection_metric: str,
+        val_loss: float,
+        test_loss: float,
+        test_metrics: dict[str, float],
+    ) -> str:
+        values = [
+            "best_alpha_summary",
+            f"best_alpha={best_alpha:.6g}" if best_alpha is not None else "best_alpha=None",
+            f"best_val/{selection_metric}={best_score:.6g}"
+            if best_score is not None
+            else f"best_val/{selection_metric}=None",
+            f"final/val/loss={val_loss:.6g}",
+            f"final/test/loss={test_loss:.6g}",
+            *(f"final/test/{name}={value:.6g}" for name, value in sorted(test_metrics.items())),
         ]
         return " ".join(values)
 
