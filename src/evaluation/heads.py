@@ -7,6 +7,16 @@ from torch import Tensor
 from evaluation.core import TargetSpec
 
 
+def pool_tokens(tokens: Tensor, pooling: str) -> Tensor:
+    if tokens.ndim != 3:
+        raise ValueError(f"expected token sequence shaped [B, T, D], got {tokens.shape}")
+    if pooling == "first":
+        return tokens[:, 0]
+    if pooling == "mean":
+        return tokens.mean(dim=1)
+    raise ValueError(f"unknown pooling: {pooling}")
+
+
 class LinearHead(nn.Module):
     def __init__(self, input_dim: int, output_dim: int, pooling: str):
         super().__init__()
@@ -16,17 +26,7 @@ class LinearHead(nn.Module):
         self.linear = nn.Linear(input_dim, output_dim)
 
     def forward(self, tokens: Tensor) -> Tensor:
-        if tokens.ndim != 3:
-            raise ValueError(
-                f"LinearHead expects token sequence shaped [B, T, D], got {tokens.shape}"
-            )
-        if self.pooling == "first":
-            features = tokens[:, 0]
-        elif self.pooling == "mean":
-            features = tokens.mean(dim=1)
-        else:
-            raise AssertionError(f"unreachable pooling: {self.pooling}")
-        return self.linear(features)
+        return self.linear(pool_tokens(tokens, self.pooling))
 
 
 def _build_linear_head(

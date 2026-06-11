@@ -50,6 +50,14 @@ The probe trainer writes:
 - `predictions.csv`: test-set prediction and target values
 - `head-best.pt`: state dict for the best head checkpoint
 
+The scikit probe trainer writes:
+
+- `metrics.json`: selected estimator, selected alpha, validation history, final
+  validation metrics, and test metrics
+- `predictions.csv`: test-set prediction and target values
+- `features.npz`: raw pooled train/validation/test features and targets
+- `model.joblib`: serialized scikit-learn pipeline
+
 ## Config Shape
 
 The current configs use this top-level structure:
@@ -110,6 +118,7 @@ Registered trainer modes:
 | Config value | Trainer | Status |
 | --- | --- | --- |
 | `mode.name: probe` | `ProbeTrainer` | Supported for regression targets |
+| `mode.name: scikit_probe` | `ScikitProbeTrainer` | Supported for regression targets |
 
 `probe` freezes the backbone, trains only the head with AdamW and MSE loss,
 selects the best head by validation metric, reloads that head, then evaluates
@@ -117,6 +126,31 @@ on validation and test splits.
 
 Classification targets are represented by `TargetSpec(kind="classification",
 ...)`, but `ProbeTrainer` currently raises `NotImplementedError` for them. It will be properly implemented when a classification tasks gets implemented.
+
+`scikit_probe` freezes the backbone, extracts pooled features once for each
+split, saves them to `features.npz`, and fits a scikit-learn estimator on those
+features. The first supported estimator is `ridge`, implemented as
+`StandardScaler` followed by `Ridge`. If `mode.alphas` is omitted, the default
+Ridge grid is:
+
+```yaml
+mode:
+  name: scikit_probe
+  estimator: ridge
+  alphas: [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]
+```
+
+Use a single-value list to fit one alpha:
+
+```yaml
+mode:
+  name: scikit_probe
+  estimator: ridge
+  alphas: [1.0]
+```
+
+Additional scikit estimators should be added to the estimator registry in
+`evaluation.trainers`.
 
 ### Heads
 
